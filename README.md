@@ -15,6 +15,22 @@
   * 로그인 하지 않은 사용자가 상품 관리에 접근하면 로그인 화면으로 이동
 * 회원 가입, 상품 관리
 
+### 홈화면
+![img.png](img.png)
+
+### 로그인 성공
+![img_1.png](img_1.png)
+
+### 회원 가입
+![img_2.png](img_2.png)
+
+### 로그인
+![img_3.png](img_3.png)
+
+### 상품 목록
+![img_4.png](img_4.png)
+
+
 ### 패키지 구조 설계
 **package 구조**
 * hello.login
