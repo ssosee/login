@@ -223,12 +223,22 @@ class SessionManagerTest {
 
 ![img_9.png](img_9.png)
 
+#### SessionConst
+`HttpSession` 에 데이터를 보관하고 조회할 때, 같은 이름이 중복되어 사용되므로, 상수를 하나 정의했다.
 ```java
 public class SessionConst {
     public static final String LOGIN_MEMBER = "loginMember";
 }
 ```
 
+#### LoginController - loginV3()
+* 세션 생성 `request.getSession()` `default: true`
+  * `request.getSession(true)`
+    * 세션이 있으면 기존 세션 반환
+    * 세션이 없으면 새로운 세션 생성 후 반환
+  * `request.getSession(false)`
+    * 세션이 있으면 기존 세션 반환
+    * 세션이 없으면 `null` 반환
 ```java
 @PostMapping("/login")
 public String loginV3(@Valid @ModelAttribute LoginForm loginForm, BindingResult bindingResult, HttpServletRequest request) {
@@ -249,10 +259,56 @@ public String loginV3(@Valid @ModelAttribute LoginForm loginForm, BindingResult 
       HttpSession session = request.getSession(true);
       //세션에 로그인 회원 정보 보관
       session.setAttribute(SessionConst.LOGIN_MEMBER, loginMember);
-      
       return "redirect:/";
 }
 ```
+
+#### LoginController - logoutV3()
+`session.invalidate()` 세션을 제거한다.
+```java
+@PostMapping("/logout")
+public String logoutV3(HttpServletRequest request) {
+      HttpSession session = request.getSession(false);
+      if(session != null){
+          session.invalidate();
+      }
+      return "redirect:/";
+}
+```
+
+#### HomeController - homLoginV3()
+`session.getAttribute(SessionConst.LOGIN_MEMBER)` : 로그인 시점에 세션에 보관한 회원 객체를
+찾는다.
+```java
+@GetMapping("/")
+public String homLoginV3(HttpServletRequest request, Model model) {
+
+    HttpSession session = request.getSession(false);
+    if (session == null) {
+        return "home";
+    }
+
+    Member loginMember = (Member) session.getAttribute(SessionConst.LOGIN_MEMBER);
+    //세션에 회원 데이터가 없으면 home
+    if(loginMember == null) {
+        return "home";
+    }
+
+    model.addAttribute("member", loginMember);
+    return "loginHome";
+}
+```
+
+#### HomeController - homLoginV3Spring()
+`@SessionAttribute`
+
+스프링은 세션을 더 편리하게 사용할 수 있도록 `@SessionAttribute` 을 지원한다.
+
+이미 로그인 된 사용자를 찾을 때는 아래와 같이 사용하면 된다.
+
+_참고로 이 기능은 세션을 생성 하지 않는다._
+
+`@SessionAttribute(name = SessionConst.LOGIN_MEMBER, required = false)`
 
 ```java
 @GetMapping("/")
@@ -267,4 +323,55 @@ public String homLoginV3Spring(@SessionAttribute(name = SessionConst.LOGIN_MEMBE
     return "loginHome";
 }
 ```
+
+### TrackingModes
+로그인을 처음 시도하면 URL이 다음과 같이 `jsessionid` 를 포함하고 있는 것을 확인할 수 있다.
+```text
+http://localhost:8080/;jsessionid=F59911518B921DF62D09F0DF8F83F872
+```
+**이것은 웹 브라우저가 쿠키를 지원하지 않을 때 쿠키 대신 URL을 통해서 세션을 유지하는 방법!**
+
+타임리프 같은 템플릿은 엔진을 통해서 링크를 걸면 자동으로 포함해준다.
+
+서버 입장에서 웹 브라우저가 쿠키를 지원하는지 아닌지 최초에는 판한다지 못하므로, 쿠키 값도 전달하고, URL에 jsessionid 도 함께 전달한다.
+
+**URL 전달 방식을 끄고 항상 쿠키를 통해서만 세션을 유지**하고 싶으면 다음 옵션을 넣어주면 된다. 
+
+이렇게 하면 URL에 `jsessionid` 가 노출되지 않는다.
+```properties
+server.servlet.session.tracking-modes=cookie
+```
+
+### 세션 타임아웃
+
+글로벌 설정
+```properties
+# 60초
+server.servlet.session.timeout=60
+```
+
+특정 세션 단위로 시간 설정
+```java
+session.setMaxInactiveInterval(1800); //1800초
+```
+세션의 타임아웃 시간은 해당 세션과 관련된 `JSESSIONID` 를 전달하는 `HTTP 요청`이 있으면 현재 시간으로 다시 초기화 된다.
+이렇게 초기화 되면 세션 타임아웃으로 설정한 시간동안 세션을 추가로 사용할 수 있다.
+`session.getLastAccessedTime()` : 최근 세션 접근 시간
+LastAccessedTime 이후로 timeout 시간이 지나면, WAS가 내부에서 해당 세션을 제거
+
+### 세션 정리
+
+**세션에는 최소한의 데이터만 보관**해야 한다는 점이다. 
+
+보관한 `데이터 용량 * 사용자 수`로 세션의 메모리 사용량이 급격하게 늘어나서 장애로 이어질 수 있다. 
+
+추가로 세션의 시간을 너무 길게 가져가면 메모리 사용이 계속 누적 될 수 있으므로 적당한 시간을 선택하는 것이 필요하다. 
+
+`기본이 30분`이라는 것을 기준으로 고민하면 된다.
+
+
+## 서블릿 필터
+
+
+
 
