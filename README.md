@@ -176,3 +176,95 @@ class SessionManagerTest {
 }
 ```
 
+**동작 방식**
+
+* **로그인**
+  * 사용자가 `loginId`, `password` 정보를 전달하면서 서버에서 해당 사용자가 맞는지 확인 
+
+![img_5.png](img_5.png)
+
+* **세션 생성**
+  * 세션 ID를 생성(추정 불가능 해야함)
+  * UUID 사용
+    * `Cookie: mySessionId=zz0101xx-bab9-4b92-9b32-dadb280f4b61`
+
+![img_6.png](img_6.png)
+
+* **세션 id를 쿠키로 전달**
+  * 클라이언트롸 서버는 결국 쿠키로 연결되어야함.(세션ID를 사용하여 느슨한 관계 유지)
+  * 서버는 클라리언트에 `mySessionId` 라는 이름으로 세션 ID만 `쿠키`에 담아서 전달
+  * 클라이언트는 `쿠키` 저장소에 `mySessionId` 쿠키를 보관
+
+![img_7.png](img_7.png)
+
+* **클라이언트의 세션 id 쿠키 전달**
+  * 클라이언트는 요청시 항상 `mySessionId` 쿠키를 전달한다.
+  * 서버에서는 클라이언트가 전달한 `mySessionId` 쿠키 정보로 세션 저장소를 조회해서 로그인시 보관한 세션 정보를 사용
+
+![img_8.png](img_8.png)
+
+* 정리
+  * 쿠키 값을 변조 가능 
+    * 예상 불가능한 복잡한 세션 Id를 사용
+  * 쿠키에 보관하는 정보는 클라이언트 해킹시 훔칠 가능성
+    * 세션 Id를 도둑 맞아도 여기에는 중요한 정보가 없음
+  * 쿠키 탈취 후 사용 
+    * 해커가 토큰을 훔쳐가도 시간이 지나면 사용할 수 없도록 서버에서 세션의 만료시간을 짧게 유지
+    * 해킹이 의심되는 경우 서버에서 해당 세션을 강제로 제거
+
+### HTTPSession 사용하기
+서블릿이 제공하는 `HttpSession` 도 결국 우리가 직접 만든 `SessionManager` 와 같은 방식으로 동작한다.
+
+서블릿을 통해 `HttpSession` 을 생성하면 다음과 같은 쿠키를 생성한다.
+
+쿠키의 이름이 `JSESSIONID` 이고, 값은 추정 불가능한 랜덤 값이다.
+
+`Cookie: JSESSIONID=5B78E23B513F50164D6FDD8C97B0AD05`
+
+![img_9.png](img_9.png)
+
+```java
+public class SessionConst {
+    public static final String LOGIN_MEMBER = "loginMember";
+}
+```
+
+```java
+@PostMapping("/login")
+public String loginV3(@Valid @ModelAttribute LoginForm loginForm, BindingResult bindingResult, HttpServletRequest request) {
+
+      if (bindingResult.hasErrors()) {
+          return "login/loginForm";
+      }
+      
+      Member loginMember = loginService.login(loginForm.getLoginId(), loginForm.getPassword());
+      
+      if (loginMember == null) {
+          bindingResult.reject("loginFail", "아이디 또는 비밀번호가 맞지 않습니다.");
+          return "login/loginForm";
+      }
+      
+      //로그인 성공 처리 TODO
+      //세션이 있으면 있는 세션 반환, 없으면 신규 세션을 생성
+      HttpSession session = request.getSession(true);
+      //세션에 로그인 회원 정보 보관
+      session.setAttribute(SessionConst.LOGIN_MEMBER, loginMember);
+      
+      return "redirect:/";
+}
+```
+
+```java
+@GetMapping("/")
+public String homLoginV3Spring(@SessionAttribute(name = SessionConst.LOGIN_MEMBER, required = false) Member member, Model model) {
+
+    //세션에 회원 데이터가 없으면 home
+    if(member == null) {
+        return "home";
+    }
+
+    model.addAttribute("member", member);
+    return "loginHome";
+}
+```
+
