@@ -223,7 +223,8 @@ class SessionManagerTest {
 
 ![img_9.png](img_9.png)
 
-#### SessionConst
+**SessionConst**
+
 `HttpSession` 에 데이터를 보관하고 조회할 때, 같은 이름이 중복되어 사용되므로, 상수를 하나 정의했다.
 ```java
 public class SessionConst {
@@ -231,7 +232,8 @@ public class SessionConst {
 }
 ```
 
-#### LoginController - loginV3()
+**LoginController - loginV3()**
+
 * 세션 생성 `request.getSession()` `default: true`
   * `request.getSession(true)`
     * 세션이 있으면 기존 세션 반환
@@ -263,7 +265,8 @@ public String loginV3(@Valid @ModelAttribute LoginForm loginForm, BindingResult 
 }
 ```
 
-#### LoginController - logoutV3()
+**LoginController - logoutV3()**
+
 `session.invalidate()` 세션을 제거한다.
 ```java
 @PostMapping("/logout")
@@ -276,7 +279,8 @@ public String logoutV3(HttpServletRequest request) {
 }
 ```
 
-#### HomeController - homLoginV3()
+**HomeController - homLoginV3()**
+
 `session.getAttribute(SessionConst.LOGIN_MEMBER)` : 로그인 시점에 세션에 보관한 회원 객체를
 찾는다.
 ```java
@@ -299,7 +303,8 @@ public String homLoginV3(HttpServletRequest request, Model model) {
 }
 ```
 
-#### HomeController - homLoginV3Spring()
+**HomeController - homLoginV3Spring()**
+
 `@SessionAttribute`
 
 스프링은 세션을 더 편리하게 사용할 수 있도록 `@SessionAttribute` 을 지원한다.
@@ -878,4 +883,4 @@ public class WebConfig implements WebMvcConfigurer {
 ```
 
 실행해보면, 결과는 동일하지만, 더 편리하게 로그인 회원 정보를 조회할 수 있다. 이렇게
-ArgumentResolver 를 활용하면 공통 작업이 필요할 때 컨트롤러를 더욱 편리하게 사용할 수 있다.
+`ArgumentResolver` 를 활용하면 공통 작업이 필요할 때 컨트롤러를 더욱 편리하게 사용할 수 있다.
